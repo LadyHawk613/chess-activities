@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hidden Defenses Puzzle Builder</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- jQuery (Required by chessboard.js) -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <!-- Chess.js for game logic -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <!-- Chessboard.js CSS and JS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+
+    <style>
+        .highlight-correct { box-shadow: inset 0 0 3px 3px #4ade80; }
+        .highlight-incorrect { box-shadow: inset 0 0 3px 3px #f87171; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 p-2 flex flex-col items-center justify-center h-screen overflow-hidden">
+
+    <div class="max-w-xl w-full bg-slate-800 p-4 rounded-2xl shadow-xl border border-slate-700 flex flex-col justify-between">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-2">
+            <div>
+                <h1 class="text-lg font-bold text-amber-400">Hidden Defenses Puzzle</h1>
+                <p class="text-xs text-slate-400">Multi-Step Calculation (2-3 Moves Deep)</p>
+            </div>
+            <button id="resetBtn" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold px-2.5 py-1.5 rounded-lg transition text-xs">
+                Reset Puzzle
+            </button>
+        </div>
+
+        <!-- Status Box -->
+        <div id="instructionBox" class="mb-3 bg-slate-900 p-2.5 rounded-xl border border-slate-700 text-center transition-all">
+            <span id="statusText" class="font-bold text-xs text-slate-200">Find White's first winning move.</span>
+        </div>
+
+        <!-- Board Container -->
+        <div class="flex justify-center mb-3">
+            <div id="board" style="width: 360px"></div>
+        </div>
+
+        <!-- Instructions Footer -->
+        <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 text-xs text-slate-300 flex justify-between items-center">
+            <div>
+                <span class="font-semibold text-white">Focus:</span> Anticipate opponent counter-checks before playing your second move.
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Logic -->
+    <script>
+        var board = null;
+        // Sample multi-step tactical position FEN
+        var startFen = 'r1bqkb1r/pppp1ppp/2n5/4p3/2B1n3/5N2/PPPP1PPP/RNBQ1RK1 w kq - 0 5';
+        var game = new Chess(startFen);
+        
+        // Puzzle solution tree: Step 1 (White), Step 2 (Black automated response), Step 3 (White winning finish)
+        const expectedMove1 = { from: 'c4', to: 'f7' }; // Bxf7+
+        const forcedBlackReply = { from: 'e8', to: 'f7' }; // Kxf7
+        const expectedMove2 = { from: 'f3', to: 'e5' }; // Nxe5+ (forking / discovering attack)
+
+        let puzzleState = 'step1'; // 'step1', 'step2_waiting', 'step3', 'completed'
+
+        function updateStatus(msg, type = 'default') {
+            const box = $('#instructionBox');
+            const text = $('#statusText');
+            text.text(msg);
+            box.removeClass('border-slate-700 border-green-500 border-red-500 bg-slate-900 bg-green-900/30 bg-red-900/30');
+            if (type === 'error') box.addClass('border-red-500 bg-red-900/30 text-red-200');
+            else if (type === 'success') box.addClass('border-green-500 bg-green-900/30 text-green-200');
+            else box.addClass('border-slate-700 bg-slate-900 text-slate-200');
+        }
+
+        function onDrop(source, target) {
+            if (puzzleState === 'completed' || puzzleState === 'step2_waiting') return 'snapback';
+
+            var move = game.move({ from: source, to: target, promotion: 'q' });
+            if (move === null) return 'snapback';
+
+            board.position(game.fen());
+
+            if (puzzleState === 'step1') {
+                if (move.from === expectedMove1.from && move.to === expectedMove1.to) {
+                    updateStatus("Good check! Black responds. Watch out for the counter...", 'success');
+                    puzzleState = 'step2_waiting';
+                    
+                    // Trigger automated Black defense after short delay
+                    window.setTimeout(function() {
+                        game.move(forcedBlackReply);
+                        board.position(game.fen());
+                        updateStatus("Black captured. Now find White's follow-up blow!");
+                        puzzleState = 'step3';
+                    }, 700);
+                } else {
+                    updateStatus("Incorrect first move. Look for tactical entry points.", 'error');
+                    window.setTimeout(() => { game.undo(); board.position(game.fen()); updateStatus("Find White's first winning move."); }, 800);
+                }
+            } else if (puzzleState === 'step3') {
+                if (move.from === expectedMove2.from && move.to === expectedMove2.to) {
+                    updateStatus("Brilliant! Multi-step calculation complete! 🎉", 'success');
+                    puzzleState = 'completed';
+                } else {
+                    updateStatus("Incorrect follow-up. Capitalize on the exposed King.", 'error');
+                    window.setTimeout(() => { game.undo(); board.position(game.fen()); updateStatus("Now find White's follow-up blow!"); }, 800);
+                }
+            }
+        }
+
+        var config = {
+            draggable: true,
+            position: startFen,
+            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+            onDrop: onDrop,
+            snapbackSpeed: 500
+        };
+
+        board = Chessboard('board', config);
+        $(window).resize(board.resize);
+
+        $('#resetBtn').on('click', function() {
+            game.load(startFen);
+            board.position(startFen);
+            puzzleState = 'step1';
+            updateStatus("Find White's first winning move.");
+        });
+    </script>
+</body>
+</html>
