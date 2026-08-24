@@ -15,12 +15,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
 
     <style>
-        .highlight-correct {
-            box-shadow: inset 0 0 3px 3px #4ade80; /* green-400 */
-        }
-        .highlight-incorrect {
-            box-shadow: inset 0 0 3px 3px #f87171; /* red-400 */
-        }
+        .highlight-correct { box-shadow: inset 0 0 3px 3px #4ade80; }
+        .highlight-incorrect { box-shadow: inset 0 0 3px 3px #f87171; }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 p-2 flex flex-col items-center justify-center h-screen overflow-hidden">
@@ -32,23 +28,23 @@
                 <h1 class="text-lg font-bold text-sky-400">Opening Trap Simulator</h1>
                 <p id="scenarioTitle" class="text-xs text-slate-400">Halloween Gambit Scenario</p>
             </div>
-            <button id="resetBtn" class="bg-sky-600 hover:bg-sky-700 text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                Reset Puzzle
-            </button>
+            <div class="flex gap-2">
+                <button id="nextMoveBtn" class="bg-sky-500 hover:bg-sky-600 text-slate-950 font-semibold px-2.5 py-1.5 rounded-lg transition text-xs">
+                    Next Move ➔
+                </button>
+                <button id="resetBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold px-2.5 py-1.5 rounded-lg transition text-xs">
+                    Reset
+                </button>
+            </div>
         </div>
 
         <!-- Status / Instruction Box -->
         <div id="instructionBox" class="mb-3 bg-slate-900 p-2.5 rounded-xl border border-slate-700 text-center transition-all">
-            <span id="statusText" class="font-bold text-xs text-slate-200">Initializing board...</span>
+            <span id="statusText" class="font-bold text-xs text-slate-200">Click 'Next Move' to walk through the opening.</span>
         </div>
 
         <!-- Board Container -->
-        <div class="flex justify-center mb-3 relative">
-            <div id="boardOverlay" class="absolute inset-0 bg-slate-900/80 z-10 flex items-center justify-center rounded-lg hidden">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500"></div>
-            </div>
-            <!-- Set to 360px width to perfectly match the compact layout -->
+        <div class="flex justify-center mb-3">
             <div id="board" style="width: 360px"></div>
         </div>
 
@@ -67,22 +63,18 @@
         const blunderMove = 'Nxe4?'; 
         const refutationMove = 'd4';
         
-        let currentState = 'initializing';
+        let setupIndex = 0;
+        let currentState = 'stepping'; // 'stepping', 'awaiting_refutation', 'completed'
 
         function updateStatus(msg, type = 'default') {
             const box = $('#instructionBox');
             const text = $('#statusText');
-            
             text.text(msg);
             box.removeClass('border-slate-700 border-green-500 border-red-500 bg-slate-900 bg-green-900/30 bg-red-900/30');
 
-            if (type === 'error') {
-                box.addClass('border-red-500 bg-red-900/30 text-red-200');
-            } else if (type === 'success') {
-                box.addClass('border-green-500 bg-green-900/30 text-green-200');
-            } else {
-                box.addClass('border-slate-700 bg-slate-900 text-slate-200');
-            }
+            if (type === 'error') box.addClass('border-red-500 bg-red-900/30 text-red-200');
+            else if (type === 'success') box.addClass('border-green-500 bg-green-900/30 text-green-200');
+            else box.addClass('border-slate-700 bg-slate-900 text-slate-200');
         }
 
         function updateMoveList(move) {
@@ -90,39 +82,28 @@
             $('#moveList').scrollTop($('#moveList')[0].scrollHeight);
         }
 
-        function showOverlay(show) {
-            $('#boardOverlay').toggleClass('hidden', !show);
-        }
-
-        async function runSetup() {
-            currentState = 'autoplaying';
-            game.reset();
-            board.position(game.fen());
-            $('#moveList').html('<span class="text-slate-500">Moves: </span>');
-            updateStatus("Observing opening moves...");
-            showOverlay(true);
-
-            for (let i = 0; i < setupMoves.length; i++) {
-                await new Promise(r => setTimeout(r, 600));
-                game.move(setupMoves[i]);
-                board.position(game.fen());
-                updateMoveList(setupMoves[i]);
+        function handleNextMoveClick() {
+            if (currentState === 'stepping') {
+                if (setupIndex < setupMoves.length) {
+                    let move = setupMoves[setupIndex];
+                    game.move(move);
+                    board.position(game.fen());
+                    updateMoveList(move);
+                    setupIndex++;
+                    updateStatus(`Move ${setupIndex}/${setupMoves.length + 1}: Opening development.`);
+                } else if (setupIndex === setupMoves.length) {
+                    // Play the Blunder step
+                    game.move(blunderMove);
+                    board.position(game.fen());
+                    updateMoveList(blunderMove);
+                    setupIndex++;
+                    
+                    // Switch phase to interactive refutation challenge
+                    currentState = 'awaiting_refutation';
+                    updateStatus("Black just played Nxe4 (Blunder!). Drag White's piece to punish this mistake.");
+                    $('#nextMoveBtn').text('Locked').prop('disabled', true).addClass('opacity-50 cursor-not-allowed');
+                }
             }
-
-            await new Promise(r => setTimeout(r, 800));
-            
-            game.move(blunderMove);
-            board.position(game.fen());
-            updateMoveList(blunderMove);
-            
-            showOverlay(false);
-            startPuzzleMode();
-        }
-
-        function startPuzzleMode() {
-            currentState = 'awaiting_refutation';
-            updateStatus("Black just played Nxe4. Punish this mistake!");
-            $('#board .square-55d63').removeClass('highlight-correct highlight-incorrect');
         }
 
         function onDrop(source, target) {
@@ -137,14 +118,13 @@
             });
 
             if (move === null) return 'snapback';
-
             board.position(game.fen());
 
             if (move.san === refutationMove) {
                 currentState = 'completed';
                 $(`.square-${source}`).addClass('highlight-correct');
                 $(`.square-${target}`).addClass('highlight-correct');
-                updateStatus("Correct! White gains a decisive advantage after d4.", 'success');
+                updateStatus("Correct! White gains a decisive advantage after d4. 🎉", 'success');
             } else {
                 $(`.square-${source}`).addClass('highlight-incorrect');
                 $(`.square-${target}`).addClass('highlight-incorrect');
@@ -154,7 +134,7 @@
                     game.undo();
                     board.position(game.fen());
                     if (currentState === 'awaiting_refutation') {
-                         updateStatus("Punish Black's mistake (Nxe4).");
+                         updateStatus("Punish Black's mistake (Nxe4) with White.");
                     }
                 }, 800);
             }
@@ -163,20 +143,29 @@
         var config = {
             draggable: true,
             position: 'start',
-            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png', // Fixed piece images
+            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
             onDrop: onDrop,
             snapbackSpeed: 500,
             snapSpeed: 100,
         };
 
         board = Chessboard('board', config);
-
         $(window).resize(board.resize);
 
-        $('#resetBtn').on('click', runSetup);
+        // Event Handlers
+        $('#nextMoveBtn').on('click', handleNextMoveClick);
 
-        runSession = () => { runSetup(); };
-        runSetup();
+        $('#resetBtn').on('click', function() {
+            game.reset();
+            board.position('start');
+            setupIndex = 0;
+            currentState = 'stepping';
+            $('#moveList').html('<span class="text-slate-500">Moves: </span>');
+            $('#nextMoveBtn').text('Next Move ➔').prop('disabled', false).removeClass('opacity-50 cursor-not-allowed');
+            updateStatus("Click 'Next Move' to walk through the opening.");
+        });
+
+        updateStatus("Click 'Next Move' to walk through the opening.");
     </script>
 </body>
 </html>
