@@ -12,7 +12,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
     <!-- Chessboard.js CSS and JS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 p-2 flex flex-col items-center justify-center h-screen overflow-hidden">
@@ -22,7 +21,7 @@
         <div class="flex justify-between items-center mb-2">
             <div>
                 <h1 class="text-lg font-bold text-sky-400">Break the Pin Dashboard</h1>
-                <p id="challengeTracker" class="text-xs text-slate-400">Challenge 1 of 3: Identify the Motif</p>
+                <p id="challengeTracker" class="text-xs text-slate-400">Challenge 1 of 10: Identify the Motif</p>
             </div>
             <button id="nextChallengeBtn" class="bg-sky-500 hover:bg-sky-600 text-slate-950 font-semibold px-2.5 py-1.5 rounded-lg transition text-xs">
                 Next Board ➔
@@ -58,25 +57,67 @@
 
     <!-- Script Logic -->
     <script>
-        // List of sorting challenges with target answers
+        // --- 10 TACTICAL SORTING CHALLENGES ---
         const challenges = [
             {
                 fen: 'r1bqkbnr/pppp1ppp/8/4p3/4n3/3P1N2/PPP1PPPP/RNBQKB1R w KQkq - 0 4',
-                title: 'Challenge 1 of 3: Identify the Motif',
+                title: 'Challenge 1 of 10: Identify the Motif',
                 answer: 'Absolute Pin',
-                hint: 'Look at the bishop pinning a knight directly against the opposing King.'
+                hint: 'A piece is pinning an opponent piece directly against the enemy King.'
             },
             {
                 fen: '3r2k1/5ppp/8/8/8/4Q3/8/6K1 w - - 0 1',
-                title: 'Challenge 2 of 3: Identify the Motif',
+                title: 'Challenge 2 of 10: Identify the Motif',
                 answer: 'Relative Pin',
-                hint: 'The Queen restricts a valuable piece because moving it exposes material behind it.'
+                hint: 'A high-value piece (like a Queen) restricts a piece shielding material behind it.'
             },
             {
                 fen: '4k3/8/4r3/8/4R3/8/8/4K3 w - - 0 1',
-                title: 'Challenge 3 of 3: Identify the Motif',
+                title: 'Challenge 3 of 10: Identify the Motif',
                 answer: 'Skewer',
-                hint: 'An attack on a high-value piece that forces it to move, exposing a lesser piece behind it.'
+                hint: 'An attack on a high-value piece forcing it to move, exposing a lesser piece behind it.'
+            },
+            {
+                fen: 'r1bqkb1r/pppp1ppp/2n5/4p3/2B1n3/5N2/PPPP1PPP/RNBQ1RK1 w kq - 0 5',
+                title: 'Challenge 4 of 10: Identify the Motif',
+                answer: 'Discovered Attack',
+                hint: 'Moving a piece out of the way reveals a hidden line of attack from a bishop or rook.'
+            },
+            {
+                fen: 'r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4',
+                title: 'Challenge 5 of 10: Identify the Motif',
+                answer: 'Absolute Pin',
+                hint: 'The light-squared bishop restricts the f6 knight from moving due to the king on e8.'
+            },
+            {
+                fen: '6k1/5ppp/8/4q3/8/8/4R3/6K1 w - - 0 1',
+                title: 'Challenge 6 of 10: Identify the Motif',
+                answer: 'Relative Pin',
+                hint: 'The rook pins the black queen along the rank/file because of back-rank threats.'
+            },
+            {
+                fen: '4k3/4r3/8/4K3/8/8/8/4R3 w - - 0 1',
+                title: 'Challenge 7 of 10: Identify the Motif',
+                answer: 'Skewer',
+                hint: 'The king is attacked on the open file, forcing it to step aside and lose the rook behind.'
+            },
+            {
+                fen: 'r2qk2r/ppp2ppp/2n1bn2/3p4/1b1PP3/2N2N2/PPP2PPP/R1BQKB1R w KQkq - 1 7',
+                title: 'Challenge 8 of 10: Identify the Motif',
+                answer: 'Absolute Pin',
+                hint: 'The bishop on b4 pins the c3 knight to the white king.'
+            },
+            {
+                fen: 'r1bqk2r/pppp1ppp/2n2n2/4p3/1bB1P3/2N2N2/PPPP1PPP/R1BQK2R w KQkq - 4 5',
+                title: 'Challenge 9 of 10: Identify the Motif',
+                answer: 'Discovered Attack',
+                hint: 'A knight maneuver can step aside to unleash a powerful attack from a bishop.'
+            },
+            {
+                fen: '8/3k4/8/3q4/8/3Q4/8/6K1 w - - 0 1',
+                title: 'Challenge 10 of 10: Identify the Motif',
+                answer: 'Relative Pin',
+                hint: 'The queen creates a direct line of pressure against a defended piece.'
             }
         ];
 
@@ -107,7 +148,7 @@
         }
 
         var config = {
-            draggable: false, // Sorting dashboard is visual recognition, pieces are static
+            draggable: false, 
             position: challenges[currentIndex].fen,
             pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
         };
