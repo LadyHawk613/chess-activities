@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess Endgame Speed Drill: 10-Drill Suite</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- jQuery (Required by chessboard.js) -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <!-- Chess.js for game logic -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <!-- Chessboard.js CSS and JS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 p-2 flex flex-col items-center justify-center h-screen overflow-hidden">
+
+    <div class="max-w-xl w-full bg-slate-800 p-4 rounded-2xl shadow-xl border border-slate-700 flex flex-col justify-between">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-2">
+            <div>
+                <h1 class="text-lg font-bold text-amber-400">Endgame Speed Drill Suite</h1>
+                <p id="drillTracker" class="text-xs text-slate-400">Drill 1 of 10: Rook Checkmate</p>
+            </div>
+            <div class="flex gap-2">
+                <button id="prevBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold px-2.5 py-1.5 rounded-lg transition text-xs">◀ Prev</button>
+                <button id="nextBtn" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold px-2.5 py-1.5 rounded-lg transition text-xs">Next ➔</button>
+            </div>
+        </div>
+
+        <!-- Stats Bar -->
+        <div class="grid grid-cols-3 gap-2 mb-3 bg-slate-900 p-2.5 rounded-xl border border-slate-700 text-center text-sm">
+            <div>
+                <span class="block text-[10px] text-slate-400 uppercase tracking-wider">Status</span>
+                <span id="statusText" class="font-bold text-amber-400 text-xs">Your Turn (White)</span>
+            </div>
+            <div>
+                <span class="block text-[10px] text-slate-400 uppercase tracking-wider">Moves Made</span>
+                <span id="moveCount" class="font-bold text-sm">0</span>
+            </div>
+            <div>
+                <span class="block text-[10px] text-slate-400 uppercase tracking-wider">Timer</span>
+                <span id="timer" class="font-bold text-sm">00:00</span>
+            </div>
+        </div>
+
+        <!-- Board Container -->
+        <div class="flex justify-center mb-3">
+            <div id="board" style="width: 360px"></div>
+        </div>
+
+        <!-- Instructions Footer -->
+        <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 text-xs text-slate-300 flex justify-between items-center">
+            <div class="pr-2">
+                <span class="font-semibold text-white">Objective:</span> <span id="drillObjective">Deliver checkmate using your Rook and King against the lone King.</span>
+            </div>
+            <button id="resetBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-2.5 py-1.5 rounded transition shrink-0">
+                Reset
+            </button>
+        </div>
+    </div>
+
+    <!-- Script Logic -->
+    <script>
+        const drills = [
+            {
+                fen: '7k/8/5K2/8/8/8/R7/8 w - - 0 1',
+                title: 'Drill 1 of 10: Rook Checkmate',
+                objective: 'Deliver checkmate using your Rook and King against the lone King.'
+            },
+            {
+                fen: '8/8/5k2/8/8/4K3/4Q3/8 w - - 0 1',
+                title: 'Drill 2 of 10: Queen Checkmate',
+                objective: 'Drive the black king to the edge and deliver checkmate with King and Queen.'
+            },
+            {
+                fen: '8/8/5k2/8/8/4K3/3RR3/8 w - - 0 1',
+                title: 'Drill 3 of 10: Two Rooks Checkmate',
+                objective: 'Execute the "lawnmower" technique using two rooks to force checkmate.'
+            },
+            {
+                fen: '8/4k3/8/4K3/8/8/4P3/8 w - - 0 1',
+                title: 'Drill 4 of 10: Basic King & Pawn Opposition',
+                objective: 'Take the direct opposition to infiltrate with your King and promote the pawn.'
+            },
+            {
+                fen: '8/5k2/8/4K3/8/4P3/8/8 w - - 0 1',
+                title: 'Drill 5 of 10: Pawn Breakthrough',
+                objective: 'Maneuver your King to support the pawn advance while dodging checks/stalls.'
+            },
+            {
+                fen: '8/3k4/8/3PK3/8/8/8/8 w - - 0 1',
+                title: 'Drill 6 of 10: Outflanking the Defender',
+                objective: 'Use outflanking maneuvers to bypass the defending King and win the opposition.'
+            },
+            {
+                fen: '8/8/5k2/4p3/4K3/8/4R3/8 w - - 0 1',
+                title: 'Drill 7 of 10: Rook Behind the Passed Pawn',
+                objective: 'Active Rook defense & transition: cut off the king and trap the pawn.'
+            },
+            {
+                fen: '8/8/4k3/8/4K3/4b3/4R3/8 w - - 0 1',
+                title: 'Drill 8 of 10: Rook vs. Bishop Defense',
+                objective: 'Convert the slight material edge by pressuring the passive bishop.'
+            },
+            {
+                fen: '8/5k2/8/8/4K3/4N3/8/8 w - - 0 1',
+                title: 'Drill 9 of 10: Knight & Bishop Mating Net',
+                objective: 'Recognize pattern constraints (mating must occur in the correct corner color).'
+            },
+            {
+                fen: '8/8/4k3/4p3/4K3/4P3/8/8 w - - 0 1',
+                title: 'Drill 10 of 10: King & Pawn Endgame Race',
+                objective: 'Calculate accurately to ensure your pawn promotes a tempo ahead.'
+            }
+        ];
+
+        let currentDrillIndex = 0;
+        var board = null;
+        var game = new Chess(drills[currentDrillIndex].fen);
+        var moveCount = 0;
+        var timerInterval = null;
+        var secondsElapsed = 0;
+        var gameIsOver = false;
+
+        function loadDrill(index) {
+            currentDrillIndex = index;
+            game.load(drills[currentDrillIndex].fen);
+            board.position(drills[currentDrillIndex].fen);
+            
+            $('#drillTracker').text(drills[currentDrillIndex].title);
+            $('#drillObjective').text(drills[currentDrillIndex].objective);
+            $('#statusText').html('Your Turn (White)');
+            $('#statusText').removeClass('text-green-400 text-red-400').addClass('text-amber-400');
+            
+            moveCount = 0;
+            secondsElapsed = 0;
+            gameIsOver = false;
+            stopTimer();
+            $('#timer').text('00:00');
+            updateStats();
+        }
+
+        function startTimer() {
+            if (timerInterval) return;
+            timerInterval = setInterval(function() {
+                secondsElapsed++;
+                let mins = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
+                let secs = (secondsElapsed % 60).toString().padStart(2, '0');
+                $('#timer').text(`${mins}:${secs}`);
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+
+        function updateStats() {
+            $('#moveCount').text(moveCount);
+        }
+
+        function onDragStart(source, piece, position, orientation) {
+            if (game.game_over() || gameIsOver) return false;
+            if (piece.search(/^b/) !== -1) return false;
+        }
+
+        function makeRandomBlackMove() {
+            var legalMoves = game.moves({ verbose: true });
+            if (game.game_over()) return;
+
+            var blackMoves = legalMoves.filter(m => m.color === 'b');
+            if (blackMoves.length === 0) return;
+
+            var randomMove = blackMoves[Math.floor(Math.random() * blackMoves.length)];
+            game.move(randomMove);
+            board.position(game.fen());
+
+            checkGameStatus();
+        }
+
+        function onDrop(source, target) {
+            startTimer();
+
+            var move = game.move({
+                from: source,
+                to: target,
+                promotion: 'q' 
+            });
+
+            if (move === null) return 'snapback';
+
+            moveCount++;
+            updateStats();
+            checkGameStatus();
+
+            if (!game.game_over() && !gameIsOver) {
+                $('#statusText').text("Black is defending...");
+                window.setTimeout(function() {
+                    makeRandomBlackMove();
+                    if (!game.game_over()) {
+                        $('#statusText').text("Your Turn (White)");
+                    }
+                }, 300);
+            }
+        }
+
+        function checkGameStatus() {
+            if (game.in_checkmate()) {
+                stopTimer();
+                gameIsOver = true;
+                $('#statusText').html("<span class='text-green-400'>Checkmate! Completed! 🎉</span>");
+            } else if (game.in_draw() || game.in_stalemate()) {
+                stopTimer();
+                gameIsOver = true;
+                $('#statusText').html("<span class='text-red-400'>Draw / Stalemate. Reset!</span>");
+            }
+        }
+
+        function onSnapEnd() {
+            board.position(game.fen());
+        }
+
+        var config = {
+            draggable: true,
+            position: drills[currentDrillIndex].fen,
+            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+            onDragStart: onDragStart,
+            onDrop: onDrop,
+            onSnapEnd: onSnapEnd
+        };
+
+        board = Chessboard('board', config);
+
+        $('#resetBtn').on('click', function() {
+            loadDrill(currentDrillIndex);
+        });
+
+        $('#nextBtn').on('click', function() {
+            let nextIndex = (currentDrillIndex + 1) % drills.length;
+            loadDrill(nextIndex);
+        });
+
+        $('#prevBtn').on('click', function() {
+            let prevIndex = (currentDrillIndex - 1 + drills.length) % drills.length;
+            loadDrill(prevIndex);
+        });
+    </script>
+</body>
+</html>
