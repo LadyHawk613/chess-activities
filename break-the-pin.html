@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Break the Pin Sorting Dashboard</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- jQuery (Required by chessboard.js) -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <!-- Chess.js for game logic -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <!-- Chessboard.js CSS and JS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 p-2 flex flex-col items-center justify-center h-screen overflow-hidden">
+
+    <div class="max-w-xl w-full bg-slate-800 p-4 rounded-2xl shadow-xl border border-slate-700 flex flex-col justify-between">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-2">
+            <div>
+                <h1 class="text-lg font-bold text-sky-400">Break the Pin Dashboard</h1>
+                <p id="challengeTracker" class="text-xs text-slate-400">Challenge 1 of 3: Identify the Motif</p>
+            </div>
+            <button id="nextChallengeBtn" class="bg-sky-500 hover:bg-sky-600 text-slate-950 font-semibold px-2.5 py-1.5 rounded-lg transition text-xs">
+                Next Board ➔
+            </button>
+        </div>
+
+        <!-- Status Box -->
+        <div id="instructionBox" class="mb-3 bg-slate-900 p-2.5 rounded-xl border border-slate-700 text-center transition-all">
+            <span id="statusText" class="font-bold text-xs text-slate-200">What tactical motif is present in this position?</span>
+        </div>
+
+        <!-- Board Container -->
+        <div class="flex justify-center mb-3">
+            <div id="board" style="width: 360px"></div>
+        </div>
+
+        <!-- Category Buttons Footer -->
+        <div class="grid grid-cols-2 gap-2">
+            <button onclick="checkAnswer('Absolute Pin')" class="bg-slate-700 hover:bg-sky-600 hover:text-white text-slate-200 text-xs py-2 px-3 rounded-xl transition font-medium border border-slate-600">
+                Absolute Pin
+            </button>
+            <button onclick="checkAnswer('Relative Pin')" class="bg-slate-700 hover:bg-sky-600 hover:text-white text-slate-200 text-xs py-2 px-3 rounded-xl transition font-medium border border-slate-600">
+                Relative Pin
+            </button>
+            <button onclick="checkAnswer('Skewer')" class="bg-slate-700 hover:bg-sky-600 hover:text-white text-slate-200 text-xs py-2 px-3 rounded-xl transition font-medium border border-slate-600">
+                Skewer
+            </button>
+            <button onclick="checkAnswer('Discovered Attack')" class="bg-slate-700 hover:bg-sky-600 hover:text-white text-slate-200 text-xs py-2 px-3 rounded-xl transition font-medium border border-slate-600">
+                Discovered Attack
+            </button>
+        </div>
+    </div>
+
+    <!-- Script Logic -->
+    <script>
+        // List of sorting challenges with target answers
+        const challenges = [
+            {
+                fen: 'r1bqkbnr/pppp1ppp/8/4p3/4n3/3P1N2/PPP1PPPP/RNBQKB1R w KQkq - 0 4',
+                title: 'Challenge 1 of 3: Identify the Motif',
+                answer: 'Absolute Pin',
+                hint: 'Look at the bishop pinning a knight directly against the opposing King.'
+            },
+            {
+                fen: '3r2k1/5ppp/8/8/8/4Q3/8/6K1 w - - 0 1',
+                title: 'Challenge 2 of 3: Identify the Motif',
+                answer: 'Relative Pin',
+                hint: 'The Queen restricts a valuable piece because moving it exposes material behind it.'
+            },
+            {
+                fen: '4k3/8/4r3/8/4R3/8/8/4K3 w - - 0 1',
+                title: 'Challenge 3 of 3: Identify the Motif',
+                answer: 'Skewer',
+                hint: 'An attack on a high-value piece that forces it to move, exposing a lesser piece behind it.'
+            }
+        ];
+
+        let currentIndex = 0;
+        var board = null;
+
+        function loadChallenge(index) {
+            currentIndex = index;
+            board.position(challenges[currentIndex].fen);
+            $('#challengeTracker').text(challenges[currentIndex].title);
+            $('#statusText').text("What tactical motif is present in this position?");
+            $('#instructionBox').removeClass('border-green-500 border-red-500 bg-green-900/30 bg-red-900/30').addClass('border-slate-700 bg-slate-900');
+        }
+
+        function checkAnswer(selectedCategory) {
+            const correct = challenges[currentIndex].answer;
+            const box = $('#instructionBox');
+            
+            box.removeClass('border-slate-700 border-green-500 border-red-500 bg-slate-900 bg-green-900/30 bg-red-900/30');
+
+            if (selectedCategory === correct) {
+                box.addClass('border-green-500 bg-green-900/30 text-green-200');
+                $('#statusText').text(`Correct! This is a ${correct}. 🎉`);
+            } else {
+                box.addClass('border-red-500 bg-red-900/30 text-red-200');
+                $('#statusText').text(`Incorrect. Hint: ${challenges[currentIndex].hint}`);
+            }
+        }
+
+        var config = {
+            draggable: false, // Sorting dashboard is visual recognition, pieces are static
+            position: challenges[currentIndex].fen,
+            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
+        };
+
+        board = Chessboard('board', config);
+        $(window).resize(board.resize);
+
+        $('#nextChallengeBtn').on('click', function() {
+            let next = (currentIndex + 1) % challenges.length;
+            loadChallenge(next);
+        });
+    </script>
+</body>
+</html>
